@@ -1,5 +1,12 @@
 # awg-bot 🛡
 
+🇷🇺 [Русский](#русский) | 🇬🇧 [English](#english)
+
+---
+
+<a name="русский"></a>
+## 🇷🇺 Русский
+
 Telegram-бот для управления VPN-сервером на базе [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) — форка WireGuard с защитой от DPI/блокировок.
 
 Полностью кнопочный интерфейс, никаких команд вводить не нужно.
@@ -284,5 +291,297 @@ Junk-параметры бот читает **автоматически** из 
 ---
 
 ## Лицензия
+
+MIT
+
+---
+
+<a name="english"></a>
+## 🇬🇧 English
+
+A Telegram bot for managing a VPN server based on [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) — a WireGuard fork with DPI/censorship bypass capabilities.
+
+Fully button-driven interface — no commands to type.
+
+---
+
+## Interface
+
+```
+┌─────────────────────────────────┐
+│   🛡 AmneziaWG Bot              │
+│   Choose an action:             │
+│                                 │
+│  [📊 Server Status]             │
+│  [👥 Clients]  [➕ Add]        │
+│  [💾 Backup]   [🔄 Restart]    │
+│  [📋 Audit log]                 │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│  👤 ivan                        │
+│                                 │
+│  📍 VPN IP: 10.66.66.3          │
+│  📶 Status: 🟢 Online           │
+│  🤝 Handshake: 2026-03-03 18:22 │
+│  📥 Rx: 142.3 MB                │
+│  📤 Tx: 23.1 MB                 │
+│  ⏱ Access: until 2026-03-10    │
+│                                 │
+│  [📄 .conf]  [📱 QR code]      │
+│  [⛔ Disable]  [🔑 Rotate]     │
+│  [⏱ Access period]  [🗑 Delete]│
+└─────────────────────────────────┘
+```
+
+---
+
+## Features
+
+### 👥 Client management
+- Add a client — enter `@username` or just a name
+- Delete a client with confirmation
+- Enable / disable without deleting
+- Statistics: Rx/Tx traffic, exact last handshake time, IP
+
+### ⏱ Temporary access
+- Grant access for **1 / 7 / 30 days** or make it permanent
+- When the period expires the peer is **automatically disabled** and a Telegram notification is sent
+
+### 📱 Client connection
+- Download a ready-made `.conf` file with one button
+- QR code for mobile devices (iOS/Android)
+- Configs are compatible with [AmneziaVPN](https://amnezia.org/en/downloads)
+- AmneziaWG junk parameters are added automatically
+
+### 🔑 Key rotation
+- Regenerate client keys without changing the IP
+- New `.conf` and QR code are sent automatically
+
+### 💾 Backup
+- **💾 Backup** button — sends `awg0.conf` with a timestamp directly to Telegram
+
+### 📊 Server monitoring
+- CPU, RAM, disk usage in real time
+- Number of active clients (by handshake < 3 min)
+- Load average, uptime
+
+### 🔔 Automatic notifications
+
+| Event | Alert |
+|-------|-------|
+| `awg0` interface went down | 🔴 + "Restart" button |
+| `awg0` interface came back up | 🟢 |
+| CPU > 80% | 🔴 CPU alert |
+| RAM > 90% | 🔴 RAM alert |
+| Client connected | 🔔 name + IP |
+| Access period expired | ⏱ client auto-disabled |
+
+### 📋 Audit log
+- All actions are written to `/var/log/awg-bot-audit.log`
+- View the last 30 entries directly in the bot
+
+---
+
+## Requirements
+
+- Ubuntu 20.04+ / Debian 11+
+- Python 3.10+
+- [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) installed with the `awg0` interface up
+- `qrencode` (for QR codes — the deploy script installs it automatically)
+- Telegram Bot Token from [@BotFather](https://t.me/BotFather)
+
+---
+
+## Installation
+
+### 1. Create a bot
+
+1. Message [@BotFather](https://t.me/BotFather) → `/newbot`
+2. Copy the token in the format `1234567890:AAH...`
+
+### 2. Find your Telegram ID
+
+Message [@userinfobot](https://t.me/userinfobot) — it will reply with your numeric ID.
+
+### 3. Create the config on the server
+
+```bash
+mkdir -p /etc/awg-bot/clients
+
+cat > /etc/awg-bot/config.json << 'EOF'
+{
+  "bot_token": "YOUR_TOKEN_FROM_BOTFATHER",
+  "admin_ids": [YOUR_TELEGRAM_ID],
+  "server_ip": "YOUR_SERVER_IP",
+  "server_vpn_ip": "10.66.66.1",
+  "vpn_subnet": "10.66.66.0/24",
+  "dns": "1.1.1.1"
+}
+EOF
+
+chmod 600 /etc/awg-bot/config.json
+```
+
+> `admin_ids` — only these Telegram User IDs will have access. Everyone else will see `⛔ Access denied`.
+
+### 4. Deploy
+
+```bash
+git clone https://github.com/YOUR_USERNAME/awg-bot.git
+cd awg-bot
+chmod +x deploy.sh
+./deploy.sh
+```
+
+The script automatically:
+- Installs `python3-venv` and `qrencode`
+- Creates a virtualenv at `/opt/awg-bot/venv/`
+- Installs `python-telegram-bot`
+- Creates and starts the `awg-bot` systemd service
+
+### 5. Verify
+
+```bash
+systemctl status awg-bot
+tail -f /var/log/awg-bot.log
+```
+
+Open the bot in Telegram → `/start`
+
+---
+
+## Manual installation (without the script)
+
+```bash
+# Dependencies
+apt-get install -y python3-venv qrencode
+
+# Copy the code
+mkdir -p /opt/awg-bot
+cp bot.py /opt/awg-bot/
+
+# Virtualenv
+python3 -m venv /opt/awg-bot/venv
+/opt/awg-bot/venv/bin/pip install "python-telegram-bot>=21.0"
+
+# Systemd service
+cat > /etc/systemd/system/awg-bot.service << 'EOF'
+[Unit]
+Description=AmneziaWG Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/awg-bot
+ExecStart=/opt/awg-bot/venv/bin/python3 /opt/awg-bot/bot.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/awg-bot.log
+StandardError=append:/var/log/awg-bot.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now awg-bot
+```
+
+---
+
+## Configuration
+
+| Key | Description | Example |
+|-----|-------------|---------|
+| `bot_token` | Token from BotFather | `"1234567890:AAH..."` |
+| `admin_ids` | List of Telegram IDs with access | `[123456789]` |
+| `server_ip` | Public IP of the server | `"1.2.3.4"` |
+| `server_vpn_ip` | Server IP inside the VPN network | `"10.66.66.1"` |
+| `vpn_subnet` | VPN subnet | `"10.66.66.0/24"` |
+| `dns` | DNS for clients | `"1.1.1.1"` |
+
+An example is provided in `config.example.json`.
+
+---
+
+## File structure
+
+### Project
+
+```
+awg-bot/
+├── bot.py                # Main bot code
+├── requirements.txt      # Python dependencies
+├── deploy.sh             # Deploy script
+├── config.example.json   # Example config (no secrets)
+├── .gitignore
+└── README.md
+```
+
+### On the server
+
+```
+/opt/awg-bot/
+├── bot.py
+└── venv/
+
+/etc/awg-bot/
+├── config.json         # ⚠️ Secret — do not commit!
+├── peers.json          # Client database (auto-generated)
+└── clients/
+    ├── alice.conf
+    └── bob.conf
+
+/var/log/
+├── awg-bot.log         # Process log
+└── awg-bot-audit.log   # Audit log
+```
+
+---
+
+## Management
+
+```bash
+# Status
+systemctl status awg-bot
+
+# Restart
+systemctl restart awg-bot
+
+# Logs
+tail -f /var/log/awg-bot.log
+
+# Audit log
+tail -f /var/log/awg-bot-audit.log
+
+# Update the bot
+scp bot.py root@SERVER:/opt/awg-bot/bot.py
+ssh root@SERVER 'systemctl restart awg-bot'
+```
+
+---
+
+## AmneziaWG
+
+The bot is built for [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) — a WireGuard fork with junk parameters (`Jc`, `Jmin`, `Jmax`, `S1`, `S2`, `H1`–`H4`) for bypassing DPI inspection.
+
+The bot reads junk parameters **automatically** from `/etc/amnezia/amneziawg/awg0.conf` and inserts them into the generated client configs.
+
+Client application: [AmneziaVPN](https://amnezia.org/en/downloads) — iOS, Android, Windows, macOS, Linux.
+
+---
+
+## Security
+
+- Access is controlled by numeric Telegram User ID (not by username)
+- The config containing the token is stored at `/etc/awg-bot/config.json` with `600` permissions
+- Destructive actions (delete, restart, key rotation) require a confirmation button
+- All actions are recorded in the audit log with a timestamp and user_id
+
+---
+
+## License
 
 MIT
