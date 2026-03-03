@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+
+# Конфиг с реальными данными — никогда не коммитить!
+config.json
+
+# Данные клиентов
+peers.json
+clients/
