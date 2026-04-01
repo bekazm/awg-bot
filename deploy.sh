@@ -2,7 +2,7 @@
 # deploy.sh — деплой awg-bot на сервер
 set -euo pipefail
 
-SERVER="root@72.56.109.180"
+SERVER="root@150.241.96.231"
 REMOTE_DIR="/opt/awg-bot"
 CONFIG_DIR="/etc/awg-bot"
 SERVICE="awg-bot"
